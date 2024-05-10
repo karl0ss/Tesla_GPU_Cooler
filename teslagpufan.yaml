@@ -6,7 +6,7 @@ esp8266:
   board: d1_mini
 
 dallas:
-  - pin: D7 #D1
+  - pin: D7
     update_interval: 10s #Low Interval for DEBUGGING
 
 # Enable logging
