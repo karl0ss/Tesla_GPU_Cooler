@@ -1,0 +1,188 @@
+esphome:
+  name: teslagpufan
+  friendly_name: TeslaGPUFan
+
+esp8266:
+  board: d1_mini
+
+dallas:
+  - pin: D7 #D1
+    update_interval: 10s #Low Interval for DEBUGGING
+
+# Enable logging
+logger:
+  
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "DwwkZY4PNwxnNU72yvLxqcuWc/MCJuQLQaDcAfuUoi0="
+
+ota:
+  password: "9e682fbba6dd04199f6fb55e675d8e7d"
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  reboot_timeout: 5min
+  # Static IP
+  # manual_ip:
+  #   static_ip: 192.168.0.11
+  #   gateway: 192.168.0.1
+  #   subnet: 255.255.255.0
+
+captive_portal:
+
+mqtt:
+  broker: !secret mqtt_broker
+  username: !secret mqtt_user
+  password: !secret mqtt_pass
+  on_disconnect:
+    then:
+      - lambda: |-
+          id(fan_speed_percent) = 100.0;
+          id(fan_speed).set_level(1.0); // Set fan to 100%
+
+# Notes on Pins
+# FanPin1 | "Black" | Gnd                      | 
+# FanPin2 | "Red"   | +12v                     | 
+# FanPin3 | "Green" | RPM Signal/Sense/Tach    | Pin D2
+# FanPin4 | "Blue"  | PWM Control Signal (+5v) | Pin D1
+
+globals:
+  - id: fan_speed_percent
+    type: float
+    initial_value: '0.0'
+  - id: use_gpu_temp
+    type: bool
+    initial_value: 'true'  # Defaults to using the gpu sensor
+
+switch:
+  - platform: template
+    name: "Use GPU Temperature"
+    id: use_gpu_temp_switch
+    lambda: |-
+      return id(use_gpu_temp);
+    turn_on_action:
+      - globals.set:
+          id: use_gpu_temp
+          value: "true"
+      - logger.log: "Switched to use GPU Temperature"
+    turn_off_action:
+      - globals.set:
+          id: use_gpu_temp
+          value: "false"
+      - logger.log: "Switched to use Dallas Sensor"
+    restore_mode: ALWAYS_ON
+
+sensor:
+  # Send WiFi signal strength & uptime to HA                                                                                                                                                                                             
+  - platform: wifi_signal
+    name: WiFi Strength
+    update_interval: 30s #Low Interval for DEBUGGING
+
+  - platform: template
+    name: "Current Fan Speed"
+    lambda: 'return round(id(fan_speed_percent));'
+    unit_of_measurement: '%'
+    update_interval: 5s
+
+  - platform: template
+    name: "Current Fan Speed"
+    lambda: |-
+      if (id(use_gpu_temp)) {
+        // Logic when GPU temperature is used
+        return id(fan_speed_percent);
+      } else {
+        // Logic when Dallas sensor temperature is used
+        return id(fan_speed_percent);
+      }
+    unit_of_measurement: '%'
+    update_interval: 5s
+
+  - platform: mqtt_subscribe
+    name: "GPU Temp"
+    id: gpu_temperature 
+    topic: TEST
+    accuracy_decimals: 0
+    unit_of_measurement: "°C"
+    on_value:
+      then:
+      - lambda: |-
+          if (id(use_gpu_temp)) {
+            if (id(gpu_temperature).state < 40.0) {
+              id(fan_speed).set_level(0.25); // Set fan to 25% below 40°C
+              id(fan_speed_percent) = 25.0;
+            } else if (id(gpu_temperature).state >= 40.0 && id(gpu_temperature).state < 100.0) {
+              float temp = id(gpu_temperature).state;
+              float fanSpeedPercent = ((temp - 40.0) / (100.0 - 40.0)) * (75.0 - 31.0) + 31.0;
+              id(fan_speed).set_level(fanSpeedPercent / 100.0); // Scale fan speed between 31% and 75%
+              id(fan_speed_percent) = fanSpeedPercent;
+            } else if (id(gpu_temperature).state >= 100.0) {
+              id(fan_speed_percent) = 100.0;
+              id(fan_speed).set_level(1.0); // Set fan to 100% at or above 100°C
+            }
+          }
+
+  # RPM Signal from Fan                                                                                                                                                                                                                  
+  - platform: pulse_counter
+    pin: D2
+    name: RPM Signal
+    id: fan_RPM_pulse
+    unit_of_measurement: 'RPM'
+    filters:
+      - multiply: 0.5
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: 10s #Low Interval for DEBUGGING
+
+  - platform: dallas
+    address: 0x233c01d075790d28
+    id: sensor_temperature
+    name: "Sensor Temperature"
+    accuracy_decimals: 0
+    on_value:
+      then:
+        - lambda: |-
+            if (!id(use_gpu_temp)) {
+            if (id(sensor_temperature).state < 20.0) {
+              id(fan_speed).set_level(0.25); // Set fan to 25% below 30°C
+              id(fan_speed_percent) = 25.0;
+            } else if (id(sensor_temperature).state >= 20.0 && id(sensor_temperature).state < 25.0) {
+              id(fan_speed).set_level(0.50); // Set fan to 50% between 30°C and 50°C
+              id(fan_speed_percent) = 50.0;
+            } else if (id(sensor_temperature).state >= 25.0 && id(sensor_temperature).state < 28.0) {
+              id(fan_speed).set_level(0.75); // Set fan to 75% between 50°C and 70°C
+              id(fan_speed_percent) = 75.0;
+            } else if (id(sensor_temperature).state >= 28.0) {
+              id(fan_speed_percent) = 100.0;
+              id(fan_speed).set_level(1.0); // Set fan to 100% at or above 70°C
+            }
+            }
+
+
+output:
+  - platform: esp8266_pwm
+    id: fan_speed
+    pin: D1
+    frequency: "25000 Hz"
+    min_power: 10%
+    max_power: 100%
+
+number:
+  - platform: template
+    name: "Fan Speed Override"
+    id: fan_speed_override
+    internal: false
+    max_value: 100.0
+    min_value: 0.0
+    step: 25
+    optimistic: true
+    mode: slider
+    on_value:
+      then:
+        - output.set_level:
+            id: fan_speed
+            level: !lambda "return x / 100.0;"
+        - lambda: |-
+            id(fan_speed_percent) = x;
