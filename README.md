@@ -30,6 +30,7 @@ Having seen these 3 projects, I decided I would build my own as a mesh of the be
 	 - Option to switch between the 2 sensors
 	 - Option to override either sensor and set speed
 
-![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/df3a3840-4328-421d-816d-c48ef74269e6)
+![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/5208d1f0-97dd-4c7e-82b3-e253288f31ae)
+
 
 
