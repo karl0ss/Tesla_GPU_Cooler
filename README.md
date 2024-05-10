@@ -30,6 +30,7 @@ Having seen these 3 projects, I decided I would build my own as a mesh of the be
  - Use `ds18b20` as a fall back
 	 - Option to switch between the 2 sensors
 	 - Option to override either sensor and set speed
+  - 
 # The Idea
 
 So, Having looked at the provided projects, this is my approach, and should be yours if you are copying/following this...
