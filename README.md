@@ -23,14 +23,16 @@ I thought there must be a better way to get accurate temp readings from the box 
 Having seen these 3 projects, I decided I would build my own as a mesh of the best items I saw in each.
 
  - 3d printed shroud that I have modified to fit my card
- - Dell fan purchased from ebay 
+ - Dell fan purchased from ebay
+         - No requirement to repin the fan
  - ESP3688 (D1 Mini and ESP-12e) as I have loads sitting about
 	 - Design a PCB for ease of use in case
  - Use `nvidia smi` information for accurate readings
  - Use `ds18b20` as a fall back
 	 - Option to switch between the 2 sensors
 	 - Option to override either sensor and set speed
-  - 
+ - Use Single 12V line from existing ATX PSU
+ 	- Power 12V Fan
 # The Idea
 
 So, Having looked at the provided projects, this is my approach, and should be yours if you are copying/following this...
