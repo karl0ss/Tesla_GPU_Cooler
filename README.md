@@ -32,7 +32,7 @@ Having seen these 3 projects, I decided I would build my own as a mesh of the be
 	 - Option to switch between the 2 sensors
 	 - Option to override either sensor and set speed
  - Basic PID Controller logic
- 	- Set to 70
+ 	- Set to 70°C
   	- Can be overwritten by Home Assistant 
  - Use Single 12V line from existing ATX PSU
  	- Power 12V Fan
