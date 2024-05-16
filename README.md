@@ -46,9 +46,9 @@ So, Having looked at the provided projects, this is my approach, and should be y
 	 - All values and controls be visable via [Home Assistant](https://www.home-assistant.io/)
 	 - Have a basic/configurable "Fan Scaling" against the GPU temp
 		 - This is set to -
-			 - 25% <40°C
-			 - 26%-80% =>40°C =<100°C
-			 - 100% =>100°C
+			- Below 70°C: Fan speed set to 25%.
+			- Between 70°C and 82°C: Fan speed scales linearly from 31% to 75%.
+			- Above 82°C: Fan speed set to 100%.
 
 ![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/5208d1f0-97dd-4c7e-82b3-e253288f31ae)
 
