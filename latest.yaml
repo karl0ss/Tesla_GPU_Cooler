@@ -1,14 +1,11 @@
 substitutions:
-  # Substitution to set a friendly name for the device
   friendly_name: TeslaGPUFan
 
 esphome:
-  # Basic device setup
   name: teslagpufan
   friendly_name: ${friendly_name}
 
 esp8266:
-  # Specify the board type
   board: esp01_1m
 
 # Enable logging for debug purposes
@@ -60,7 +57,7 @@ mqtt:
           id(fan_speed_percent) = 100.0;
           id(fan_speed).set_level(1.0);
 
-# Global variables to store fan speed percentage and sensor selection state
+# Global variables to store fan speed percentage, sensor selection state, and target temperature
 globals:
   - id: fan_speed_percent
     type: float
@@ -68,9 +65,36 @@ globals:
   - id: use_gpu_temp
     type: bool
     initial_value: 'true' # Defaults to using the GPU sensor
+  - id: use_pid_control
+    type: bool
+    initial_value: 'false' # Defaults to not using PID control
+  - id: target_temperature
+    type: float
+    initial_value: '70.0' # Set default target temperature to 70°C
 
-# Switch to toggle between GPU temperature and Dallas sensor temperature
+# PID controller configuration
+pid:
+  - id: fan_pid
+    sensor: gpu_temperature
+    name: "Fan PID"
+    control_algorithm: reverse
+    update_interval: 1s
+    output: pid_output
+    # PID parameters (tune these for your specific setup)
+    kp: 1.0
+    ki: 0.1
+    kd: 0.05
+    setpoint: !lambda "return id(target_temperature);"
+
+# Output component for the PID controller
+output:
+  - platform: float
+    id: pid_output
+    min_power: 0.0
+    max_power: 1.0
+
 switch:
+  # Switch to toggle between GPU temperature and Dallas sensor temperature
   - platform: template
     name: "Use GPU Temperature"
     id: use_gpu_temp_switch
@@ -86,6 +110,24 @@ switch:
           id: use_gpu_temp
           value: "false"
       - logger.log: "Switched to use Dallas Sensor"
+    restore_mode: ALWAYS_ON
+
+  # Switch to enable or disable PID control
+  - platform: template
+    name: "Enable PID Control"
+    id: enable_pid_control
+    lambda: |-
+      return id(use_pid_control);
+    turn_on_action:
+      - globals.set:
+          id: use_pid_control
+          value: "true"
+      - logger.log: "PID Control Enabled"
+    turn_off_action:
+      - globals.set:
+          id: use_pid_control
+          value: "false"
+      - logger.log: "PID Control Disabled"
     restore_mode: ALWAYS_ON
 
 # Text sensor to publish IP address and uptime
@@ -125,18 +167,22 @@ sensor:
       # Logic for controlling fan speed based on GPU temperature
       then:
         - lambda: |-
+            if (id(use_pid_control)) {
+              // If PID control is enabled, the PID controller will handle the fan speed
+              return;
+            }
             if (id(use_gpu_temp)) {
               if (id(gpu_temperature).state < 70.0) {
-                id(fan_speed).set_level(0.25); // Set fan to 25% below 70°C
+                id(fan_speed).set_level(0.25);
                 id(fan_speed_percent) = 25.0;
               } else if (id(gpu_temperature).state < 82.0) {
                 float temp = id(gpu_temperature).state;
                 float fanSpeedPercent = ((temp - 70.0) / (82.0 - 70.0)) * (75.0 - 31.0) + 31.0;
-                id(fan_speed).set_level(fanSpeedPercent / 100.0); // Scale fan speed between 31% and 75%
+                id(fan_speed).set_level(fanSpeedPercent / 100.0);
                 id(fan_speed_percent) = fanSpeedPercent;
               } else {
                 id(fan_speed_percent) = 100.0;
-                id(fan_speed).set_level(1.0); // Set fan to 100% at or above 82°C
+                id(fan_speed).set_level(1.0);
               }
             }
 
@@ -165,16 +211,16 @@ sensor:
         - lambda: |-
             if (!id(use_gpu_temp)) {
               if (id(sensor_temperature).state < 20.0) {
-                id(fan_speed).set_level(0.25); // Set fan to 25% below 20°C
+                id(fan_speed).set_level(0.25);
                 id(fan_speed_percent) = 25.0;
               } else if (id(sensor_temperature).state < 28.0) {
                 float temp = id(sensor_temperature).state;
                 float fanSpeedPercent = ((temp - 20.0) / (28.0 - 20.0)) * (75.0 - 31.0) + 31.0;
-                id(fan_speed).set_level(fanSpeedPercent / 100.0); // Scale fan speed between 31% and 75%
+                id(fan_speed).set_level(fanSpeedPercent / 100.0);
                 id(fan_speed_percent) = fanSpeedPercent;
               } else {
                 id(fan_speed_percent) = 100.0;
-                id(fan_speed).set_level(1.0); // Set fan to 100% at or above 28°C
+                id(fan_speed).set_level(1.0);
               }
             }
 
@@ -231,3 +277,22 @@ number:
             level: !lambda "return x / 100.0;"
         - lambda: |-
             id(fan_speed_percent) = x;
+
+# Number component to allow setting the target temperature for PID control
+number:
+  - platform: template
+    name: "Target Temperature"
+    id: target_temperature_set
+    internal: false
+    max_value: 100.0
+    min_value: 20.0
+    step: 1.0
+    optimistic: true
+    unit_of_measurement: "°C"
+    on_value:
+      # Set the target temperature for the PID controller
+      then:
+        - globals.set:
+            id: target_temperature
+            value: !lambda "return x;"
+        - logger.log: "Target temperature set to ${x}°C"
