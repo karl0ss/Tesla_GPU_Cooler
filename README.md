@@ -50,6 +50,8 @@ So, Having looked at the provided projects, this is my approach, and should be y
 			- Between 70°C and 82°C: Fan speed scales linearly from 31% to 75%.
 			- Above 82°C: Fan speed set to 100%.
 
+![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/772dd6d8-6c78-424f-b040-0d405d7db1bc)
+
 ![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/5208d1f0-97dd-4c7e-82b3-e253288f31ae)
 
 ![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/f3e7f10e-381e-4672-bde9-14616baf444d)
