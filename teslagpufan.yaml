@@ -132,20 +132,20 @@ sensor:
     on_value:
       then:
       - lambda: |-
-          if (id(use_gpu_temp)) {
-            if (id(gpu_temperature).state < 70.0) {
-              id(fan_speed).set_level(0.25); // Set fan to 25% below 70°C
-              id(fan_speed_percent) = 25.0;
-            } else if (id(gpu_temperature).state >= 70.0 && id(gpu_temperature).state < 82.0) {
-              float temp = id(gpu_temperature).state;
-              float fanSpeedPercent = ((temp - 70.0) / (82.0 - 70.0)) * (75.0 - 31.0) + 31.0;
-              id(fan_speed).set_level(fanSpeedPercent / 100.0); // Scale fan speed between 70% and 82%
-              id(fan_speed_percent) = fanSpeedPercent;
-            } else if (id(gpu_temperature).state >= 82.0) {
-              id(fan_speed_percent) = 100.0;
-              id(fan_speed).set_level(1.0); // Set fan to 100% at or above 82°C
-            }
-          }
+  if (id(use_gpu_temp)) {  // Check if GPU temperature monitoring is enabled
+    float gpu_temp = id(gpu_temperature).state;
+    if (gpu_temp < 70.0) {
+      id(fan_speed).set_level(0.25);  // Set fan to 25% speed below 70°C
+      id(fan_speed_percent) = 25.0;
+    } else if (gpu_temp >= 70.0 && gpu_temp < 82.0) {
+      float fanSpeedPercent = ((gpu_temp - 70.0) / (82.0 - 70.0)) * (75.0 - 31.0) + 31.0;
+      id(fan_speed).set_level(fanSpeedPercent / 100.0);  // Scale fan speed between 31% and 75% for temperatures between 70°C and 82°C
+      id(fan_speed_percent) = fanSpeedPercent;
+    } else if (gpu_temp >= 82.0) {
+      id(fan_speed_percent) = 100.0;
+      id(fan_speed).set_level(1.0);  // Set fan to 100% speed at or above 82°C
+    }
+  }
 
   # RPM Signal from Fan                                                                                                                                                                                                                  
   - platform: pulse_counter
