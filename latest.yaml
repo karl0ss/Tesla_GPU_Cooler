@@ -71,11 +71,17 @@ globals:
   - id: target_temperature
     type: float
     initial_value: '70.0' # Set default target temperature to 70°C
+  - id: gpu_temperature_1
+    type: float
+    initial_value: '0.0'
+  - id: gpu_temperature_2
+    type: float
+    initial_value: '0.0'
 
 # PID controller configuration
 pid:
   - id: fan_pid
-    sensor: gpu_temperature
+    sensor: average_gpu_temperature
     name: "Fan PID"
     control_algorithm: reverse
     update_interval: 1s
@@ -156,35 +162,69 @@ sensor:
     unit_of_measurement: '%'
     update_interval: 5s
 
-  # MQTT sensor to subscribe to GPU temperature topic
-  - platform: mqtt_subscribe
-    name: "GPU Temp"
-    id: gpu_temperature
-    topic: TEST
-    accuracy_decimals: 0
+  # Template sensor to calculate average GPU temperature
+  - platform: template
+    name: "Average GPU Temperature"
+    id: average_gpu_temperature
+    lambda: |-
+      return (id(gpu_temperature_1) + id(gpu_temperature_2)) / 2.0;
     unit_of_measurement: "°C"
+    accuracy_decimals: 1
+    update_interval: 5s
+
+  # MQTT sensor to subscribe to the first GPU temperature topic
+  - platform: mqtt_subscribe
+    name: "GPU Temp 1"
+    id: gpu_temp_1
+    topic: sensors2mqtt/nvidia-smi/00000000_03_00_0
+    json:
+      # Parse JSON payload to extract the GPU temperature
+      sensor:
+        id: gpu_temperature_1
+        value_template: "{{ value_json['temperature.gpu'] }}"
+    unit_of_measurement: "°C"
+    accuracy_decimals: 0
+
+  # MQTT sensor to subscribe to the second GPU temperature topic
+  - platform: mqtt_subscribe
+    name: "GPU Temp 2"
+    id: gpu_temp_2
+    topic: sensors2mqtt/nvidia-smi/00000000_04_00_0
+    json:
+      # Parse JSON payload to extract the GPU temperature
+      sensor:
+        id: gpu_temperature_2
+        value_template: "{{ value_json['temperature.gpu'] }}"
+    unit_of_measurement: "°C"
+    accuracy_decimals: 0
     on_value:
-      # Logic for controlling fan speed based on GPU temperature
+      # Logic for controlling fan speed based on average temperature
       then:
         - lambda: |-
+            auto control_fan_speed = [](float temperature, float lower_limit, float upper_limit, float min_speed, float max_speed) {
+              if (temperature < lower_limit) {
+                return min_speed;
+              } else if (temperature > upper_limit) {
+                return max_speed;
+              } else {
+                return ((temperature - lower_limit) / (upper_limit - lower_limit)) * (max_speed - min_speed) + min_speed;
+              }
+            };
+
             if (id(use_pid_control)) {
               // If PID control is enabled, the PID controller will handle the fan speed
               return;
             }
+
+            float fan_speed = 0.0;
+            float average_temperature = (id(gpu_temperature_1) + id(gpu_temperature_2)) / 2.0;
             if (id(use_gpu_temp)) {
-              if (id(gpu_temperature).state < 70.0) {
-                id(fan_speed).set_level(0.25);
-                id(fan_speed_percent) = 25.0;
-              } else if (id(gpu_temperature).state < 82.0) {
-                float temp = id(gpu_temperature).state;
-                float fanSpeedPercent = ((temp - 70.0) / (82.0 - 70.0)) * (75.0 - 31.0) + 31.0;
-                id(fan_speed).set_level(fanSpeedPercent / 100.0);
-                id(fan_speed_percent) = fanSpeedPercent;
-              } else {
-                id(fan_speed_percent) = 100.0;
-                id(fan_speed).set_level(1.0);
-              }
+              fan_speed = control_fan_speed(average_temperature, 70.0, 82.0, 0.25, 1.0);
+            } else {
+              fan_speed = control_fan_speed(id(sensor_temperature).state, 20.0, 28.0, 0.25, 1.0);
             }
+            id(fan_speed_percent) = fan_speed * 100.0;
+            id(fan_speed).set_level(fan_speed);
 
   # Pulse counter to measure RPM signal from fan
   - platform: pulse_counter
@@ -205,24 +245,6 @@ sensor:
     id: sensor_temperature
     name: "Sensor Temperature"
     accuracy_decimals: 0
-    on_value:
-      # Logic for controlling fan speed based on Dallas sensor temperature
-      then:
-        - lambda: |-
-            if (!id(use_gpu_temp)) {
-              if (id(sensor_temperature).state < 20.0) {
-                id(fan_speed).set_level(0.25);
-                id(fan_speed_percent) = 25.0;
-              } else if (id(sensor_temperature).state < 28.0) {
-                float temp = id(sensor_temperature).state;
-                float fanSpeedPercent = ((temp - 20.0) / (28.0 - 20.0)) * (75.0 - 31.0) + 31.0;
-                id(fan_speed).set_level(fanSpeedPercent / 100.0);
-                id(fan_speed_percent) = fanSpeedPercent;
-              } else {
-                id(fan_speed_percent) = 100.0;
-                id(fan_speed).set_level(1.0);
-              }
-            }
 
   # Uptime sensor to provide human-readable uptime
   - platform: uptime
