@@ -53,7 +53,7 @@ globals:
   - id: use_gpu_temp
     type: bool
     initial_value: 'true'  # Defaults to using the GPU sensor
-  - id: gpu_avg_temp
+  - id: gpu_max_temp
     type: float
     initial_value: '0.0'
 
@@ -121,11 +121,11 @@ sensor:
     update_interval: 5s
 
   - platform: template
-    name: "GPU Average Temperature"
-    id: gpu_avg_temp_sensor
+    name: "GPU Maximum Temperature"
+    id: gpu_max_temp_sensor
     unit_of_measurement: "°C"
     lambda: |-
-      return id(gpu_avg_temp);
+      return id(gpu_max_temp);
     update_interval: 5s
 
   - platform: pulse_counter
@@ -230,16 +230,16 @@ interval:
     then:
       - lambda: |-
           if (id(use_gpu_temp)) {
-            float avg_temp = (id(gpu_1_temp_sensor).state + id(gpu_2_temp_sensor).state) / 2.0;
-            id(gpu_avg_temp) = avg_temp;
-            if (avg_temp < 30.0) {
+            float max_temp = std::max(id(gpu_1_temp_sensor).state, id(gpu_2_temp_sensor).state);
+            id(gpu_max_temp) = max_temp;
+            if (max_temp < 30.0) {
               id(fan_speed).set_level(0.10);  // Set fan to 10% below 30°C
               id(fan_speed_percent) = 10.0;
-            } else if (avg_temp >= 30.0 && avg_temp < 60.0) {
-              float fanSpeedPercent = ((avg_temp - 30.0) / (60.0 - 30.0)) * (70.0 - 10.0) + 10.0;
+            } else if (max_temp >= 30.0 && max_temp < 60.0) {
+              float fanSpeedPercent = ((max_temp - 30.0) / (60.0 - 30.0)) * (70.0 - 10.0) + 10.0;
               id(fan_speed).set_level(fanSpeedPercent / 100.0);  // Scale fan speed between 10% and 70%
               id(fan_speed_percent) = fanSpeedPercent;
-            } else if (avg_temp >= 60.0) {
+            } else if (max_temp >= 60.0) {
               id(fan_speed_percent) = 100.0;
               id(fan_speed).set_level(1.0);  // Set fan to 100% at or above 60°C
             }
