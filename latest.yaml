@@ -187,7 +187,7 @@ sensor:
               ).c_str();
 
 interval:
-  - interval: 10s
+  - interval: 5s
     then:
       - lambda: |-
           if (id(gpu_1_temp).state.length() > 0) {
