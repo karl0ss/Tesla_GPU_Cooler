@@ -1,6 +1,3 @@
-Install steps
-
-
 apt update && apt upgrade -y
 reboot
 
