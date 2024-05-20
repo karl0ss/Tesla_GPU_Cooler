@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Starting a journey to build a cost-effective system for running large language models (LLMs) using Ollama led me to discover Nvidia Tesla cards. These older cards, designed for server farms, boast substantial VRAM and are now available at affordable prices on eBay. After finding out that the Nvidia Tesla M60 supports Ollama and purchasing one, I realized these cards lack active cooling, necessitating a DIY solution for effective cooling.
+Starting a journey to build a cost-effective system for running large language models (LLMs) using [Ollama](https://ollama.com/) led me to discover Nvidia Tesla cards. These older cards, designed for server farms, boast substantial VRAM and are now available at affordable prices on eBay. After finding out that the Nvidia Tesla M60 supports Ollama and purchasing one, I realized these cards lack active cooling, necessitating a DIY solution for effective cooling.
 
 ## Overview of Existing Solutions
 
@@ -14,13 +14,13 @@ The first solution I encountered was a 3D printable shroud designed for the M40 
 
 ### PiPico-Based Fan Controller
 
-The next project, Tesla Cooler, used a PiPico and several small fans to cool the card. This setup controlled fan speed based on estimated temperatures derived from the `nvidia-smi` tool and a `ds18b20` temperature sensor. While innovative, I wanted a more accurate method for obtaining temperature readings and integrating them into Home Assistant.
+The next project, [Tesla Cooler](https://github.com/tesla-cooler), used a PiPico and several small fans to cool the card. This setup controlled fan speed based on estimated temperatures derived from the `nvidia-smi` tool and a `ds18b20` temperature sensor. While innovative, I wanted a more accurate method for obtaining temperature readings and integrating them into Home Assistant.
 
 ![PiPico-Based Fan Controller](https://www.esologic.com/wp-content/uploads/2021/11/MG_5596-644x429.jpg)
 
 ### Sensors2mqtt for Accurate Temperature Readings
 
-Sensors2mqtt provided a solution by scraping `nvidia-smi` data and posting it to an MQTT server, creating entities in Home Assistant. This approach offered the accuracy I needed without extensive coding, setting the foundation for my custom project.
+[Sensors2mqtt](https://github.com/koriwi/sensors2mqtt) provided a solution by scraping `nvidia-smi` data and posting it to an MQTT server, creating entities in Home Assistant. This approach offered the accuracy I needed without extensive coding, setting the foundation for my custom project.
 
 ## My Custom Solution
 
@@ -33,6 +33,7 @@ Integrating the best elements of these projects, I developed a comprehensive coo
 - **DS18b20 Sensor**: Added as a fallback.
 - **PID Controller Logic**: Maintains GPU temperature at 70°C, adjustable via Home Assistant.
 - **Single 12V Line from ATX PSU**: Powers the 12V fan.
+- **Custom PCB Design**: Designed a custom PCB for the ESP-12e to simplify the setup and ensure robust connections.
 
 ## The Implementation Plan
 
@@ -45,10 +46,11 @@ Integrating the best elements of these projects, I developed a comprehensive coo
 - **MQTT Server**: For data communication.
 - **Nvidia SMI Tool**: For accurate temperature readings.
 - **DS18b20 Temperature Sensor**: As a fallback option.
+- **Custom PCB for ESP-12e**: To ensure reliable connections and ease of setup.
 
 ### Configuration with ESPHome and Home Assistant
 
-Using ESPHome, the ESP8266 microcontroller is configured to:
+Using [ESPHome](https://esphome.io/index.html), the ESP8266 microcontroller is configured to:
 
 - **Connect to Wi-Fi**: Ensuring stable network communication.
 - **Subscribe to MQTT Topics**: Receiving GPU temperature data.
@@ -64,7 +66,7 @@ Using ESPHome, the ESP8266 microcontroller is configured to:
 
 ### Home Assistant Integration
 
-In Home Assistant, the following functionalities are implemented:
+In [Home Assistant](https://www.home-assistant.io/), the following functionalities are implemented:
 
 - **Device Monitoring**: Sensors for Wi-Fi signal strength, uptime, and fan speed.
 - **Control Switches**: To toggle between GPU and Dallas sensor, and enable/disable manual override.
@@ -82,5 +84,3 @@ TeslaGPUFan provides a robust solution for controlling a GPU fan using an ESP826
 ![TeslaGPUFan](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/f3e7f10e-381e-4672-bde9-14616baf444d)
 
 [Link to working driver](https://www.nvidia.com/Download/driverResults.aspx/222684/en-us)
-
-By following this approach, you can effectively cool your Nvidia Tesla card, ensuring optimal performance and longevity.
