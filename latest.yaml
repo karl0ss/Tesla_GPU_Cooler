@@ -56,6 +56,9 @@ globals:
   - id: gpu_max_temp
     type: float
     initial_value: '0.0'
+  - id: manual_override
+    type: bool
+    initial_value: 'false'
 
 switch:
   - platform: template
@@ -67,13 +70,36 @@ switch:
       - globals.set:
           id: use_gpu_temp
           value: "true"
+      - globals.set:
+          id: manual_override
+          value: "false"  # Reset manual override when switching controllers
       - logger.log: "Switched to use GPU Temperature"
     turn_off_action:
       - globals.set:
           id: use_gpu_temp
           value: "false"
+      - globals.set:
+          id: manual_override
+          value: "false"  # Reset manual override when switching controllers
       - logger.log: "Switched to use Dallas Sensor"
     restore_mode: ALWAYS_ON
+
+  - platform: template
+    name: "Manual Fan Override"
+    id: manual_override_switch
+    lambda: |-
+      return id(manual_override);
+    turn_on_action:
+      - globals.set:
+          id: manual_override
+          value: "true"
+      - logger.log: "Manual Fan Override enabled"
+    turn_off_action:
+      - globals.set:
+          id: manual_override
+          value: "false"
+      - logger.log: "Manual Fan Override disabled"
+    restore_mode: ALWAYS_OFF
 
 text_sensor:
   - platform: wifi_info
@@ -148,7 +174,7 @@ sensor:
     on_value:
       then:
         - lambda: |-
-            if (!id(use_gpu_temp)) {
+            if (!id(use_gpu_temp) && !id(manual_override)) {
               if (id(sensor_temperature).state < 20.0) {
                 id(fan_speed).set_level(0.25);  // Set fan to 25% below 20°C
                 id(fan_speed_percent) = 25.0;
@@ -229,7 +255,7 @@ interval:
   - interval: 2s
     then:
       - lambda: |-
-          if (id(use_gpu_temp)) {
+          if (id(use_gpu_temp) && !id(manual_override)) {
             float max_temp = std::max(id(gpu_1_temp_sensor).state, id(gpu_2_temp_sensor).state);
             id(gpu_max_temp) = max_temp;
             if (max_temp < 30.0) {
@@ -265,6 +291,9 @@ number:
     mode: slider
     on_value:
       then:
+        - globals.set:
+            id: manual_override
+            value: "true"
         - output.set_level:
             id: fan_speed
             level: !lambda "return x / 100.0;"
