@@ -271,10 +271,8 @@ interval:
     then:
       - lambda: |-
           // Update max temperature if not in manual override mode
-          if (!id(manual_override)) {
             float max_temp = std::max(id(gpu_1_temp_sensor).state, id(gpu_2_temp_sensor).state);
             id(gpu_max_temp) = max_temp;
-          }
       - script.execute: adjust_fan_speed
 
 script:
