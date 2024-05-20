@@ -1,125 +1,86 @@
+# Tesla_M60_GPU_Cooler: An ESP8266-Based Solution for Nvidia Tesla Card Cooling
 
+## Introduction
 
-# Tesla_M60_GPU_Cooler
-Open source, esp8366 based, esphome + home assistant solution to Nvidia Tesla card cooling
-# Intro
-Having started a journey to try and hack together some cheap system that I might be able to run llm's using ollama on (my current headless server is a SFF and couldn't be upgraded) I came across the Nivida Tesla cards, these old cards are designed for server farms, have "loads" of VRAM and can be got for a pretty cheap price nowadays on ebay.
+Starting a journey to build a cost-effective system for running large language models (LLMs) using Ollama led me to discover Nvidia Tesla cards. These older cards, designed for server farms, boast substantial VRAM and are now available at affordable prices on eBay. After finding out that the Nvidia Tesla M60 supports Ollama and purchasing one, I realized these cards lack active cooling, necessitating a DIY solution for effective cooling.
 
-After having a look about and stumbling on [this github issue](https://github.com/ollama/ollama/issues/2250) it would appear that the Nvidia Tesla M60 should have support for [Ollama](https://ollama.com/), and being that I had seen that floating about on eBay, I pulled the trigger and purchased it.
+## Overview of Existing Solutions
 
-The [M60](https://www.techpowerup.com/gpu-specs/tesla-m60.c2760) is a "dual GPU" card, meaning its basically 2 graphics cards in 1, each with 8GB of DDR4 ram, meaning 16GB all together, not bad for a card picked up for <£100...
+### 3D Printable Shroud with Dell Radial Fan
 
-One thing about these cards is that they have no active cooling, and looking around online there seemed to be a few solutions out there that people have come up with (I'm not the only person with this idea it would seem ;)) 
+The first solution I encountered was a 3D printable shroud designed for the M40 card, which could be paired with a Dell radial fan. However, the shroud didn't fit my M60 due to dimensional differences and PSU connector placement. Modifying the Fusion 360 file, I created a shroud specifically for the M60. This design still required repinning the fan, which wasn't ideal as I lacked spare fan headers on my motherboard.
 
-The first one I found was [this](https://www.thingiverse.com/thing:6038375), a 3d printable shroud that you can put on the end of the card and then use an old Dell radial fan - 
-![enter image description here](https://cdn.thingiverse.com/assets/81/43/b7/08/b5/large_display_0d693aff-a07b-4d63-ab91-155a881d37fa.png)
+![3D Printable Shroud](https://cdn.thingiverse.com/assets/81/43/b7/08/b5/large_display_0d693aff-a07b-4d63-ab91-155a881d37fa.png)
 
-I liked this idea, and I have a 3d printer, so ordered the fan off ebay £6, then started printing the shroud.....it didn't fit, this print was designed for an M40, and although the description said it should fit, it didn't seem to fit my M60, being it was a little wider, and the psu connector was in a different location, luckily, the original poster had shared the Fusion 360 file, so I remixed "hacked" it to fit the [M60](https://www.thingiverse.com/thing:6611626). (STL is on this repo), This design needs you to repin the fan and then it just connects to a fan header on the mobo, annoyingly, I didn't seem to have any spare.
+### PiPico-Based Fan Controller
 
-The next project I came across, and one that I have based a lot of my logic on is the [Tesla Cooler](https://github.com/tesla-cooler) project, using a piPico and a number of smaller fans to cool the card, this time the project has extended the functionally by having a pico control the fans, allowing it to speed up/down depending on the temps, I liked this, but didn't like the fact that the temp was being "estimated" based on the calculated difference that the `nvidia smi` cli tool gave and the readings of his `ds18b20` temperature sensor connected to the side of the card.
-![enter image description here](https://www.esologic.com/wp-content/uploads/2021/11/MG_5596-644x429.jpg)
-I thought there must be a better way to get accurate temp readings from the box and get them into MQTT or Home Assistant, and again, someone else had the idea and created [Sensors2mqtt](https://github.com/koriwi/sensors2mqtt), scraping the nvidia smi, then posting the information to an MQTT server, as well as making entities in Home Assistant, exactly what I wanted, saved me some coding..
+The next project, Tesla Cooler, used a PiPico and several small fans to cool the card. This setup controlled fan speed based on estimated temperatures derived from the `nvidia-smi` tool and a `ds18b20` temperature sensor. While innovative, I wanted a more accurate method for obtaining temperature readings and integrating them into Home Assistant.
 
-Having seen these 3 projects, I decided I would build my own as a mesh of the best items I saw in each.
+![PiPico-Based Fan Controller](https://www.esologic.com/wp-content/uploads/2021/11/MG_5596-644x429.jpg)
 
- - 3d printed shroud that I have modified to fit my card
- - Dell fan purchased from ebay
-         - No requirement to repin the fan
- - ESP3688 (D1 Mini and ESP-12e) as I have loads sitting about
-	 - Design a PCB for ease of use in case
- - Use `nvidia smi` information for accurate readings
- - Use `ds18b20` as a fall back
-	 - Option to switch between the 2 sensors
-	 - Option to override either sensor and set speed
- - Basic PID Controller logic
- 	- Set to 70°C
-  	- Can be overwritten by Home Assistant 
- - Use Single 12V line from existing ATX PSU
- 	- Power 12V Fan
-# The Idea
+### Sensors2mqtt for Accurate Temperature Readings
 
-So, Having looked at the provided projects, this is my approach, and should be yours if you are copying/following this...
+Sensors2mqtt provided a solution by scraping `nvidia-smi` data and posting it to an MQTT server, creating entities in Home Assistant. This approach offered the accuracy I needed without extensive coding, setting the foundation for my custom project.
 
- - Use sensors2mqtt to push nvidia-smi data to my already present MQTT server
-	 - This will publish readings into `sensors2mqtt` topic
- - Using esp3688 and [ESPHome](https://esphome.io/index.html) to create a configuration that can 
-	 - Connect to wifi
-	 - Read temperature from published sensor reading on MQTT server
-	 - Read temperature from local ds18b20 sensor
-	 - All values and controls be visable via [Home Assistant](https://www.home-assistant.io/)
-	 - Have a basic/configurable "Fan Scaling" against the GPU temp
-		 - This is set to -
-			- Below 70°C: Fan speed set to 25%.
-			- Between 70°C and 82°C: Fan speed scales linearly from 31% to 75%.
-			- Above 82°C: Fan speed set to 100%.
+## My Custom Solution
 
-![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/772dd6d8-6c78-424f-b040-0d405d7db1bc)
+Integrating the best elements of these projects, I developed a comprehensive cooling system for the Tesla M60:
 
-![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/5208d1f0-97dd-4c7e-82b3-e253288f31ae)
+- **3D Printed Shroud**: Custom-designed to fit the M60, avoiding the need for repinning the fan.
+- **Dell Fan**: Purchased from eBay, requiring no repinning.
+- **ESP8266 Microcontroller**: Utilized for controlling the fan and connecting to Wi-Fi.
+- **Nvidia SMI Data**: Used for accurate temperature readings.
+- **DS18b20 Sensor**: Added as a fallback.
+- **PID Controller Logic**: Maintains GPU temperature at 70°C, adjustable via Home Assistant.
+- **Single 12V Line from ATX PSU**: Powers the 12V fan.
 
-![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/f3e7f10e-381e-4672-bde9-14616baf444d)
+## The Implementation Plan
 
+### Components and Tools
 
-[Link to working driver](https://www.nvidia.com/Download/driverResults.aspx/222684/en-us/)
-![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/93abcb32-f536-4157-9d0a-08d4d52167a3)
+- **3D Printer**: To print the custom shroud.
+- **Dell Radial Fan**: For active cooling.
+- **ESP8266 (D1 Mini and ESP-12e)**: For microcontroller-based control.
+- **Home Assistant**: For integration and control.
+- **MQTT Server**: For data communication.
+- **Nvidia SMI Tool**: For accurate temperature readings.
+- **DS18b20 Temperature Sensor**: As a fallback option.
 
+### Configuration with ESPHome and Home Assistant
 
-# TeslaGPUFan - ESP8266 Fan Controller
+Using ESPHome, the ESP8266 microcontroller is configured to:
 
-TeslaGPUFan is a project designed to control a fan based on GPU temperature readings obtained via MQTT or a Dallas temperature sensor, using an ESP8266 microcontroller. This setup provides flexibility to switch between automatic temperature-based control and manual override, integrating seamlessly with Home Assistant and supporting MQTT for advanced automation.
+- **Connect to Wi-Fi**: Ensuring stable network communication.
+- **Subscribe to MQTT Topics**: Receiving GPU temperature data.
+- **Monitor Temperatures**: From both the GPU and DS18b20 sensor.
+- **Control Fan Speed**: Based on temperature readings with predefined thresholds.
+- **Integrate with Home Assistant**: Allowing manual override and monitoring.
 
-## Overview
+#### Fan Speed Control Logic
 
-TeslaGPUFan leverages the ESPhome framework to manage a GPU fan, ensuring efficient cooling based on real-time temperature readings from GPUs. The configuration includes various features that enhance its functionality and usability.
-
-## Features
-
-### Wi-Fi Connectivity
-- **Primary Wi-Fi Connection**: Connects to a specified Wi-Fi network for primary operations.
-- **Fallback Access Point**: Provides an access point fallback to ensure the device remains accessible if the primary network is unavailable.
-- **Static IP Configuration**: Uses a static IP address for stable network communication.
-
-### MQTT Integration
-- **MQTT Communication**: Connects to an MQTT broker to receive GPU temperature data from `sensors2mqtt`.
-- **GPU Temperature Monitoring**: Subscribes to MQTT topics to get temperature readings for GPU 1 and GPU 2.
-- **Automatic Fan Control**: Sets the fan to 100% speed in case of MQTT disconnection to prevent overheating.
-- **Maximum Temperature Control**: Uses the maximum temperature of GPU 1 and GPU 2 to control the fan speed, ensuring the highest temperature is always considered.
-
-### Dallas Temperature Sensor
-- **Fallback Temperature Monitoring**: Uses a Dallas temperature sensor as a fallback for monitoring temperature if GPU temperature readings are not available.
-- **Lower Accuracy**: Not as accurate as GPU readings, hence used only as a fallback.
-
-### Temperature-Based Fan Speed Control
 - **Below 30°C**: Fan speed set to 10%.
-- **Between 30°C and 60°C**: Fan speed scales linearly from 10% to 70%.
+- **30°C to 60°C**: Fan speed scales linearly from 10% to 70%.
 - **Above 60°C**: Fan speed set to 100%.
 
-### Manual and Automatic Control
-- **Automatic Control**: Adjusts fan speed based on the highest GPU temperature or the Dallas sensor temperature when GPU readings are unavailable.
-- **Manual Override**: Allows manual control of the fan speed via Home Assistant, overriding automatic adjustments when needed.
-
 ### Home Assistant Integration
-- **Device Monitoring**: Provides sensors for Wi-Fi signal strength, uptime, and fan speed.
-- **Control Switches**: Includes switches to toggle between using GPU temperature or Dallas sensor and to enable/disable manual override.
-- **Fan Speed Adjustment**: Offers a slider in Home Assistant for manual fan speed control.
 
-### OTA Updates
-- **Over-the-Air Updates**: Supports OTA updates to allow easy firmware upgrades without physical access to the device.
+In Home Assistant, the following functionalities are implemented:
 
-### Logging and Diagnostics
-- **Detailed Logging**: Enables comprehensive logging for troubleshooting and diagnostics.
-- **Diagnostic Sensors**: Includes sensors for monitoring Wi-Fi signal strength, uptime, and fan RPM.
-
-### Scripts and Intervals
-- **Fan Speed Adjustment Script**: A script that adjusts the fan speed based on the selected temperature sensor (GPU or Dallas) and predefined thresholds.
-- **Regular Updates**: Intervals are set to frequently update GPU temperatures and execute the fan speed adjustment script to ensure timely response to temperature changes.
+- **Device Monitoring**: Sensors for Wi-Fi signal strength, uptime, and fan speed.
+- **Control Switches**: To toggle between GPU and Dallas sensor, and enable/disable manual override.
+- **Fan Speed Adjustment**: Via a slider for manual control.
+- **OTA Updates**: For easy firmware upgrades.
 
 ## Summary
 
-TeslaGPUFan provides a comprehensive solution for managing a GPU fan using an ESP8266 microcontroller. Its features ensure efficient cooling through automatic temperature-based control while offering the flexibility of manual override. The integration with Home Assistant and support for MQTT further enhance its capabilities, making it a robust and versatile fan controller for various applications. The fallback to a Dallas temperature sensor ensures continued operation even when GPU readings are unavailable, though it is less accurate. This setup guarantees that the highest GPU temperature is always prioritized for fan control, providing optimal cooling performance based on the following scaling:
+TeslaGPUFan provides a robust solution for controlling a GPU fan using an ESP8266 microcontroller. It combines the accuracy of `nvidia-smi` temperature readings with the fallback reliability of a DS18b20 sensor. The integration with Home Assistant and MQTT allows for advanced automation and manual control, ensuring efficient cooling under varying conditions. This project showcases the potential of DIY solutions in enhancing the functionality of affordable, high-performance hardware like the Nvidia Tesla M60.
 
-- **Below 30°C**: Fan speed set to 10%.
-- **Between 30°C and 60°C**: Fan speed scales linearly from 10% to 70%.
-- **Above 60°C**: Fan speed set to 100%.
+![TeslaGPUFan Setup](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/772dd6d8-6c78-424f-b040-0d405d7db1bc)
 
-With these features, TeslaGPUFan ensures that your GPU stays cool under varying thermal conditions, providing both reliability and flexibility.
+![TeslaGPUFan](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/5208d1f0-97dd-4c7e-82b3-e253288f31ae)
+
+![TeslaGPUFan](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/f3e7f10e-381e-4672-bde9-14616baf444d)
+
+[Link to working driver](https://www.nvidia.com/Download/driverResults.aspx/222684/en-us)
+
+By following this approach, you can effectively cool your Nvidia Tesla card, ensuring optimal performance and longevity.
