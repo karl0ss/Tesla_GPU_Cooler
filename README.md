@@ -62,3 +62,64 @@ So, Having looked at the provided projects, this is my approach, and should be y
 
 [Link to working driver](https://www.nvidia.com/Download/driverResults.aspx/222684/en-us/)
 ![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/93abcb32-f536-4157-9d0a-08d4d52167a3)
+
+
+# TeslaGPUFan - ESP8266 Fan Controller
+
+TeslaGPUFan is a project designed to control a fan based on GPU temperature readings obtained via MQTT or a Dallas temperature sensor, using an ESP8266 microcontroller. This setup provides flexibility to switch between automatic temperature-based control and manual override, integrating seamlessly with Home Assistant and supporting MQTT for advanced automation.
+
+## Overview
+
+TeslaGPUFan leverages the ESPhome framework to manage a GPU fan, ensuring efficient cooling based on real-time temperature readings from GPUs. The configuration includes various features that enhance its functionality and usability.
+
+## Features
+
+### Wi-Fi Connectivity
+- **Primary Wi-Fi Connection**: Connects to a specified Wi-Fi network for primary operations.
+- **Fallback Access Point**: Provides an access point fallback to ensure the device remains accessible if the primary network is unavailable.
+- **Static IP Configuration**: Uses a static IP address for stable network communication.
+
+### MQTT Integration
+- **MQTT Communication**: Connects to an MQTT broker to receive GPU temperature data from `sensors2mqtt`.
+- **GPU Temperature Monitoring**: Subscribes to MQTT topics to get temperature readings for GPU 1 and GPU 2.
+- **Automatic Fan Control**: Sets the fan to 100% speed in case of MQTT disconnection to prevent overheating.
+- **Maximum Temperature Control**: Uses the maximum temperature of GPU 1 and GPU 2 to control the fan speed, ensuring the highest temperature is always considered.
+
+### Dallas Temperature Sensor
+- **Fallback Temperature Monitoring**: Uses a Dallas temperature sensor as a fallback for monitoring temperature if GPU temperature readings are not available.
+- **Lower Accuracy**: Not as accurate as GPU readings, hence used only as a fallback.
+
+### Temperature-Based Fan Speed Control
+- **Below 30°C**: Fan speed set to 10%.
+- **Between 30°C and 60°C**: Fan speed scales linearly from 10% to 70%.
+- **Above 60°C**: Fan speed set to 100%.
+
+### Manual and Automatic Control
+- **Automatic Control**: Adjusts fan speed based on the highest GPU temperature or the Dallas sensor temperature when GPU readings are unavailable.
+- **Manual Override**: Allows manual control of the fan speed via Home Assistant, overriding automatic adjustments when needed.
+
+### Home Assistant Integration
+- **Device Monitoring**: Provides sensors for Wi-Fi signal strength, uptime, and fan speed.
+- **Control Switches**: Includes switches to toggle between using GPU temperature or Dallas sensor and to enable/disable manual override.
+- **Fan Speed Adjustment**: Offers a slider in Home Assistant for manual fan speed control.
+
+### OTA Updates
+- **Over-the-Air Updates**: Supports OTA updates to allow easy firmware upgrades without physical access to the device.
+
+### Logging and Diagnostics
+- **Detailed Logging**: Enables comprehensive logging for troubleshooting and diagnostics.
+- **Diagnostic Sensors**: Includes sensors for monitoring Wi-Fi signal strength, uptime, and fan RPM.
+
+### Scripts and Intervals
+- **Fan Speed Adjustment Script**: A script that adjusts the fan speed based on the selected temperature sensor (GPU or Dallas) and predefined thresholds.
+- **Regular Updates**: Intervals are set to frequently update GPU temperatures and execute the fan speed adjustment script to ensure timely response to temperature changes.
+
+## Summary
+
+TeslaGPUFan provides a comprehensive solution for managing a GPU fan using an ESP8266 microcontroller. Its features ensure efficient cooling through automatic temperature-based control while offering the flexibility of manual override. The integration with Home Assistant and support for MQTT further enhance its capabilities, making it a robust and versatile fan controller for various applications. The fallback to a Dallas temperature sensor ensures continued operation even when GPU readings are unavailable, though it is less accurate. This setup guarantees that the highest GPU temperature is always prioritized for fan control, providing optimal cooling performance based on the following scaling:
+
+- **Below 30°C**: Fan speed set to 10%.
+- **Between 30°C and 60°C**: Fan speed scales linearly from 10% to 70%.
+- **Above 60°C**: Fan speed set to 100%.
+
+With these features, TeslaGPUFan ensures that your GPU stays cool under varying thermal conditions, providing both reliability and flexibility.
