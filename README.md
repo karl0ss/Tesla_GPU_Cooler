@@ -101,12 +101,13 @@ The ESPHome YAML configuration includes several key components and functionaliti
 - **Adjust Fan Speed Script**: Implements the logic for fan speed adjustment based on the selected temperature sensor and current temperatures.
 
 ### Fan Speed Control Logic
-
+![TeslaGPUFan Setup](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/772dd6d8-6c78-424f-b040-0d405d7db1bc)
 - **Below 30°C (GPU) / 20°C (Dallas)**: Fan runs at the minimum speed of 10% or 25%.
 - **30°C to 60°C (GPU) / 20°C to 28°C (Dallas)**: Fan speed scales linearly between 10% to 70% or 31% to 75%.
 - **Above 60°C (GPU) / 28°C (Dallas)**: Fan runs at maximum speed of 100%.
 
 ### Home Assistant Integration
+![WhatsApp Image 2024-05-20 at 16 40 21_f818323e](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/b6c7dbb1-61bb-4a81-944d-0b9b623012a0)
 
 In [Home Assistant](https://www.home-assistant.io/), the following functionalities are implemented:
 
@@ -118,11 +119,6 @@ In [Home Assistant](https://www.home-assistant.io/), the following functionaliti
 ## Summary
 
 TeslaGPUFan provides a robust solution for controlling a GPU fan using an ESP8266 microcontroller. It combines the accuracy of `nvidia-smi` temperature readings with the fallback reliability of a DS18b20 sensor. The integration with Home Assistant and MQTT allows for advanced automation and manual control, ensuring efficient cooling under varying conditions. This project showcases the potential of DIY solutions in enhancing the functionality of affordable, high-performance hardware like the Nvidia Tesla M60.
-
-![TeslaGPUFan Setup](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/772dd6d8-6c78-424f-b040-0d405d7db1bc)
-
-![WhatsApp Image 2024-05-20 at 16 40 21_f818323e](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/b6c7dbb1-61bb-4a81-944d-0b9b623012a0)
-
 
 ![TeslaGPUFan](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/f3e7f10e-381e-4672-bde9-14616baf444d)
 
