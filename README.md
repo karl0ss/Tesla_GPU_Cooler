@@ -121,7 +121,8 @@ TeslaGPUFan provides a robust solution for controlling a GPU fan using an ESP826
 
 ![TeslaGPUFan Setup](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/772dd6d8-6c78-424f-b040-0d405d7db1bc)
 
-![TeslaGPUFan](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/5208d1f0-97dd-4c7e-82b3-e253288f31ae)
+![WhatsApp Image 2024-05-20 at 16 40 21_f818323e](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/b6c7dbb1-61bb-4a81-944d-0b9b623012a0)
+
 
 ![TeslaGPUFan](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/f3e7f10e-381e-4672-bde9-14616baf444d)
 
