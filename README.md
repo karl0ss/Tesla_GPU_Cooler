@@ -1,4 +1,4 @@
-# Tesla_M60_GPU_Cooler: An ESP8266-Based Solution for Nvidia Tesla Card Cooling
+# Tesla M60 GPU Cooler: An ESP8266-Based Solution for Nvidia Tesla Card Cooling
 
 ## Introduction
 
@@ -58,20 +58,62 @@ Using [ESPHome](https://esphome.io/index.html), the ESP8266 microcontroller is c
 - **Control Fan Speed**: Based on temperature readings with predefined thresholds.
 - **Integrate with Home Assistant**: Allowing manual override and monitoring.
 
-#### Fan Speed Control Logic
+### Detailed Configuration
 
-- **Below 30°C**: Fan speed set to 10%.
-- **30°C to 60°C**: Fan speed scales linearly from 10% to 70%.
-- **Above 60°C**: Fan speed set to 100%.
+The ESPHome YAML configuration includes several key components and functionalities:
+
+#### Basic Setup
+- **ESP8266 Microcontroller**: Configured for Wi-Fi connectivity and microcontroller operations.
+- **Logger**: Enabled for logging events and debugging.
+- **API and OTA**: Configured for Home Assistant API integration and over-the-air firmware updates.
+- **Captive Portal**: Provides an interface for configuring Wi-Fi settings if needed.
+
+#### Wi-Fi Configuration
+- **Wi-Fi Setup**: Configures the ESP8266 to connect to the specified Wi-Fi network with static IP settings. An access point (AP) mode is also defined for initial setup or fallback.
+- **Manual IP Configuration**: Ensures the ESP8266 has a stable IP address for communication.
+
+#### MQTT Configuration
+- **MQTT Integration**: Connects to the MQTT broker for sending and receiving data.
+- **On Disconnect**: Sets the fan speed to 100% if the MQTT connection is lost, ensuring the GPU is always cooled.
+
+#### Temperature Sensors
+- **Dallas Sensor**: Configured on GPIO05 to provide fallback temperature readings.
+- **MQTT Sensors**: Subscribes to MQTT topics for GPU temperature data provided by sensors2mqtt.
+
+#### Global Variables
+- **Global States**: Maintains the state of fan speed percentage, temperature source (GPU or Dallas sensor), maximum GPU temperature, and manual override status.
+
+#### Switches
+- **Use GPU Temperature Switch**: Toggles between using GPU temperature or Dallas sensor for controlling the fan. Disables manual override when switched.
+- **Manual Fan Override Switch**: Allows manual control of the fan speed, overriding automatic temperature-based control.
+
+#### Sensors and Outputs
+- **Wi-Fi Signal Strength**: Monitors Wi-Fi connection quality.
+- **Template Sensors**: For current fan speed, GPU maximum temperature, and uptime.
+- **Pulse Counter**: Measures fan RPM via pulses on GPIO0.
+- **PWM Output**: Controls fan speed using a PWM signal on GPIO02, with frequency set to 25 kHz.
+
+#### Number Component
+- **Fan Speed Override**: Slider in Home Assistant for manual fan speed control, activates manual override when adjusted.
+
+#### Intervals and Scripts
+- **Intervals**: Regularly update GPU temperatures, calculate maximum temperature, and adjust fan speed accordingly.
+- **Adjust Fan Speed Script**: Implements the logic for fan speed adjustment based on the selected temperature sensor and current temperatures.
+
+### Fan Speed Control Logic
+
+- **Below 30°C (GPU) / 20°C (Dallas)**: Fan runs at the minimum speed of 10% or 25%.
+- **30°C to 60°C (GPU) / 20°C to 28°C (Dallas)**: Fan speed scales linearly between 10% to 70% or 31% to 75%.
+- **Above 60°C (GPU) / 28°C (Dallas)**: Fan runs at maximum speed of 100%.
 
 ### Home Assistant Integration
 
 In [Home Assistant](https://www.home-assistant.io/), the following functionalities are implemented:
 
-- **Device Monitoring**: Sensors for Wi-Fi signal strength, uptime, and fan speed.
-- **Control Switches**: To toggle between GPU and Dallas sensor, and enable/disable manual override.
-- **Fan Speed Adjustment**: Via a slider for manual control.
-- **OTA Updates**: For easy firmware upgrades.
+- **Device Monitoring**: Displays real-time sensor data, fan speed, and other relevant metrics.
+- **Control Switches**: Provides interface to toggle temperature source and manual override.
+- **Fan Speed Adjustment**: Allows manual control through a slider interface.
+- **OTA Updates**: Simplifies firmware upgrades to add features or fix issues without physical access to the device.
 
 ## Summary
 
