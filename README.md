@@ -116,10 +116,41 @@ In [Home Assistant](https://www.home-assistant.io/), the following functionaliti
 - **Fan Speed Adjustment**: Allows manual control through a slider interface.
 - **OTA Updates**: Simplifies firmware upgrades to add features or fix issues without physical access to the device.
 
+
+## PCB Design
+![TeslaGPUFan](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/f3e7f10e-381e-4672-bde9-14616baf444d)
+The custom PCB design for the ESP-12e simplifies the setup and ensures robust connections for the cooling system. Here's a breakdown of the components and their connections:
+
+1. **Power Supply:**
+   - The circuit is powered by a 12V power supply connected to a header (HDR-F-2.54_1x2).
+   - The 12V is stepped down to 3.3V using an LD1117V33C voltage regulator (U2).
+
+2. **Voltage Regulator (U2 - LD1117V33C):**
+   - Input (VIN) connected to the 12V supply.
+   - Ground (GND) connected to the common ground.
+   - Output (VOUT) providing 3.3V to power the ESP8266 and other components.
+
+3. **ESP-12E (ESP8266-12E):**
+   - The 3.3V supply from the voltage regulator is connected to the VCC pin of the ESP8266.
+   - Various GPIO pins are connected to other components in the circuit:
+     - GPIO2 is connected to the DQ pin of the DS18B20 temperature sensor through a 4.7kΩ pull-up resistor (R1).
+     - GPIO4 and GPIO5 are connected to a fan through a 10kΩ resistor (R2).
+
+4. **DS18B20 Temperature Sensor (U1):**
+   - VDD connected to 3.3V.
+   - GND connected to ground.
+   - DQ (Data) line connected to GPIO2 of the ESP8266 through a 4.7kΩ pull-up resistor (R1).
+
+5. **Fan:**
+   - Connected to GPIO4 and GPIO5 of the ESP8266 through a 10kΩ resistor (R2).
+   - The exact configuration of the fan connections is not fully clear from the diagram, but it appears to be controlled by the ESP8266.
+
+This circuit is designed for temperature monitoring using the DS18B20 sensor, with the ESP8266 controlling a fan based on the temperature readings. The ESP8266 can also provide Wi-Fi connectivity to send data to a server or a cloud service for remote monitoring.
+
 ## Summary
 
 TeslaGPUFan provides a robust solution for controlling a GPU fan using an ESP8266 microcontroller. It combines the accuracy of `nvidia-smi` temperature readings with the fallback reliability of a DS18b20 sensor. The integration with Home Assistant and MQTT allows for advanced automation and manual control, ensuring efficient cooling under varying conditions. This project showcases the potential of DIY solutions in enhancing the functionality of affordable, high-performance hardware like the Nvidia Tesla M60.
 
-![TeslaGPUFan](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/f3e7f10e-381e-4672-bde9-14616baf444d)
+
 
 [Link to working driver](https://www.nvidia.com/Download/driverResults.aspx/222684/en-us)
