@@ -113,13 +113,13 @@ text_sensor:
 
   - platform: mqtt_subscribe
     name: "GPU 1 Temp"
-    internal: True
+    internal: true
     id: gpu_1_temp
     topic: "sensors2mqtt/nvidia-smi/00000000_03_00_0"
 
   - platform: mqtt_subscribe
     name: "GPU 2 Temp"
-    internal: True
+    internal: true
     id: gpu_2_temp
     topic: "sensors2mqtt/nvidia-smi/00000000_04_00_0"
 
@@ -173,21 +173,7 @@ sensor:
     accuracy_decimals: 0
     on_value:
       then:
-        - lambda: |-
-            if (!id(use_gpu_temp) && !id(manual_override)) {
-              if (id(sensor_temperature).state < 20.0) {
-                id(fan_speed).set_level(0.25);  // Set fan to 25% below 20°C
-                id(fan_speed_percent) = 25.0;
-              } else if (id(sensor_temperature).state >= 20.0 && id(sensor_temperature).state < 28.0) {
-                float temp = id(sensor_temperature).state;
-                float fanSpeedPercent = ((temp - 20.0) / (28.0 - 20.0)) * (75.0 - 31.0) + 31.0;
-                id(fan_speed).set_level(fanSpeedPercent / 100.0);  // Scale fan speed between 31% and 75%
-                id(fan_speed_percent) = fanSpeedPercent;
-              } else if (id(sensor_temperature).state >= 28.0) {
-                id(fan_speed_percent) = 100.0;
-                id(fan_speed).set_level(1.0);  // Set fan to 100% at or above 28°C
-              }
-            }
+        - script.execute: adjust_fan_speed
 
   - platform: uptime
     name: ${friendly_name} Uptime
@@ -211,6 +197,35 @@ sensor:
                 (minutes ? to_string(minutes) + "m " : "") +
                 (to_string(seconds) + "s")
               ).c_str();
+
+output:
+  - platform: esp8266_pwm
+    id: fan_speed
+    pin: GPIO02
+    frequency: "25000 Hz"
+    min_power: 10%
+    max_power: 100%
+
+number:
+  - platform: template
+    name: "Fan Speed Override"
+    id: fan_speed_override
+    internal: false
+    max_value: 100.0
+    min_value: 0.0
+    step: 25
+    optimistic: true
+    mode: slider
+    on_value:
+      then:
+        - globals.set:
+            id: manual_override
+            value: "true"
+        - output.set_level:
+            id: fan_speed
+            level: !lambda "return x / 100.0;"
+        - lambda: |-
+            id(fan_speed_percent) = x;
 
 interval:
   - interval: 5s
@@ -252,50 +267,47 @@ interval:
             id(gpu_2_temp_sensor).publish_state(temperature);
           }
 
-  - interval: 2s
+  - interval: 1s
     then:
       - lambda: |-
-          if (id(use_gpu_temp) && !id(manual_override)) {
+          // Update max temperature if not in manual override mode
+          if (!id(manual_override)) {
             float max_temp = std::max(id(gpu_1_temp_sensor).state, id(gpu_2_temp_sensor).state);
             id(gpu_max_temp) = max_temp;
-            if (max_temp < 30.0) {
-              id(fan_speed).set_level(0.10);  // Set fan to 10% below 30°C
-              id(fan_speed_percent) = 10.0;
-            } else if (max_temp >= 30.0 && max_temp < 60.0) {
-              float fanSpeedPercent = ((max_temp - 30.0) / (60.0 - 30.0)) * (70.0 - 10.0) + 10.0;
-              id(fan_speed).set_level(fanSpeedPercent / 100.0);  // Scale fan speed between 10% and 70%
-              id(fan_speed_percent) = fanSpeedPercent;
-            } else if (max_temp >= 60.0) {
-              id(fan_speed_percent) = 100.0;
-              id(fan_speed).set_level(1.0);  // Set fan to 100% at or above 60°C
+          }
+      - script.execute: adjust_fan_speed
+
+script:
+  - id: adjust_fan_speed
+    mode: queued
+    then:
+      - lambda: |-
+          if (!id(manual_override)) {
+            if (id(use_gpu_temp)) {
+              float max_temp = id(gpu_max_temp);
+              if (max_temp < 30.0) {
+                id(fan_speed).set_level(0.10);  // Set fan to 10% below 30°C
+                id(fan_speed_percent) = 10.0;
+              } else if (max_temp >= 30.0 && max_temp < 60.0) {
+                float fanSpeedPercent = ((max_temp - 30.0) / (60.0 - 30.0)) * (70.0 - 10.0) + 10.0;
+                id(fan_speed).set_level(fanSpeedPercent / 100.0);  // Scale fan speed between 10% and 70%
+                id(fan_speed_percent) = fanSpeedPercent;
+              } else if (max_temp >= 60.0) {
+                id(fan_speed_percent) = 100.0;
+                id(fan_speed).set_level(1.0);  // Set fan to 100% at or above 60°C
+              }
+            } else {
+              float temp = id(sensor_temperature).state;
+              if (temp < 20.0) {
+                id(fan_speed).set_level(0.25);  // Set fan to 25% below 20°C
+                id(fan_speed_percent) = 25.0;
+              } else if (temp >= 20.0 && temp < 28.0) {
+                float fanSpeedPercent = ((temp - 20.0) / (28.0 - 20.0)) * (75.0 - 31.0) + 31.0;
+                id(fan_speed).set_level(fanSpeedPercent / 100.0);  // Scale fan speed between 31% and 75%
+                id(fan_speed_percent) = fanSpeedPercent;
+              } else if (temp >= 28.0) {
+                id(fan_speed_percent) = 100.0;
+                id(fan_speed).set_level(1.0);  // Set fan to 100% at or above 28°C
+              }
             }
           }
-
-output:
-  - platform: esp8266_pwm
-    id: fan_speed
-    pin: GPIO02
-    frequency: "25000 Hz"
-    min_power: 10%
-    max_power: 100%
-
-number:
-  - platform: template
-    name: "Fan Speed Override"
-    id: fan_speed_override
-    internal: false
-    max_value: 100.0
-    min_value: 0.0
-    step: 25
-    optimistic: true
-    mode: slider
-    on_value:
-      then:
-        - globals.set:
-            id: manual_override
-            value: "true"
-        - output.set_level:
-            id: fan_speed
-            level: !lambda "return x / 100.0;"
-        - lambda: |-
-            id(fan_speed_percent) = x;
