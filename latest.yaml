@@ -10,9 +10,12 @@ esp8266:
 
 # Enable logging
 logger:
+  level: INFO
 
 # Enable Home Assistant API
-api:
+# api:
+  # encryption:
+  #   key: "unHyxONOR6XLHdsEgQ5HNcUjdVn2gHJUK65xllvM4VM="
 
 ota:
   password: "17300c7bac4a847d2b255aca0f4620e3"
@@ -61,6 +64,8 @@ globals:
     initial_value: 'false'
 
 switch:
+  - platform: restart
+    name: "${friendly_name} Restart"  
   - platform: template
     name: "Use GPU Temperature"
     id: use_gpu_temp_switch
@@ -281,31 +286,22 @@ script:
     then:
       - lambda: |-
           if (!id(manual_override)) {
+            float fanSpeedPercent;
+            float temp;
             if (id(use_gpu_temp)) {
-              float max_temp = id(gpu_max_temp);
-              if (max_temp < 30.0) {
-                id(fan_speed).set_level(0.10);  // Set fan to 10% below 30°C
-                id(fan_speed_percent) = 10.0;
-              } else if (max_temp >= 30.0 && max_temp < 60.0) {
-                float fanSpeedPercent = ((max_temp - 30.0) / (60.0 - 30.0)) * (70.0 - 10.0) + 10.0;
-                id(fan_speed).set_level(fanSpeedPercent / 100.0);  // Scale fan speed between 10% and 70%
-                id(fan_speed_percent) = fanSpeedPercent;
-              } else if (max_temp >= 60.0) {
-                id(fan_speed_percent) = 100.0;
-                id(fan_speed).set_level(1.0);  // Set fan to 100% at or above 60°C
-              }
+              temp = id(gpu_max_temp);
             } else {
-              float temp = id(sensor_temperature).state;
-              if (temp < 20.0) {
-                id(fan_speed).set_level(0.25);  // Set fan to 25% below 20°C
-                id(fan_speed_percent) = 25.0;
-              } else if (temp >= 20.0 && temp < 28.0) {
-                float fanSpeedPercent = ((temp - 20.0) / (28.0 - 20.0)) * (75.0 - 31.0) + 31.0;
-                id(fan_speed).set_level(fanSpeedPercent / 100.0);  // Scale fan speed between 31% and 75%
-                id(fan_speed_percent) = fanSpeedPercent;
-              } else if (temp >= 28.0) {
-                id(fan_speed_percent) = 100.0;
-                id(fan_speed).set_level(1.0);  // Set fan to 100% at or above 28°C
-              }
+              temp = id(sensor_temperature).state;
             }
+
+            if (temp < 50.0) {
+              fanSpeedPercent = 10.0;  // Set fan to 10% below 50°C
+            } else if (temp >= 50.0 && temp < 65.0) {
+              fanSpeedPercent = ((temp - 50.0) / 15.0) * 70.0 + 10.0;  // Scale fan speed between 10% and 80%
+            } else {
+              fanSpeedPercent = 100.0;  // Set fan to 100% at or above 65°C
+            }
+
+            id(fan_speed).set_level(fanSpeedPercent / 100.0);
+            id(fan_speed_percent) = fanSpeedPercent;
           }
