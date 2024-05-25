@@ -34,3 +34,17 @@ Environment="OLLAMA_HOST=0.0.0.0"
 after all this, you can tell ollama is indeed serving on all interfaces by sudo systemctl status ollama, there will be logs like Listening on [::]:11434
 
 No need for alarm; This already happens when you run systemctl edit ollama.service
+
+# Proxmox passthrough
+
+`sudo apt install pkg-config libglvnd-dev`
+
+```
+lxc.cgroup2.devices.allow: c 195:* rwm
+lxc.cgroup2.devices.allow: c 534:* rwm
+lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
+lxc.mount.entry: /dev/nvidia1 dev/nvidia1 none bind,optional,create=file
+lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
+lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
+lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,c
+```
