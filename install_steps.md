@@ -39,6 +39,8 @@ No need for alarm; This already happens when you run systemctl edit ollama.servi
 
 # Proxmox passthrough
 
+`sudo usermod -aG video,render,input,xrdp,sudo,syslog usernamehere`
+
 `sudo apt install pkg-config libglvnd-dev`
 
 ```
