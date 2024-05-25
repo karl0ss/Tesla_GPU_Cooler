@@ -1,22 +1,22 @@
-apt update && apt upgrade -y
+`apt update && apt upgrade -y`
 reboot
 
-apt install build-essential dkms pve-headers-$(uname -r)
+`apt install build-essential dkms pve-headers-$(uname -r)`
 
-wget https://us.download.nvidia.com/tesla/550.54.15/NVIDIA-Linux-x86_64-550.54.15.run
+`wget https://us.download.nvidia.com/tesla/550.54.15/NVIDIA-Linux-x86_64-550.54.15.run`
 
-chmod +x NVIDIA-Linux-x86_64-550.54.15.run
+`chmod +x NVIDIA-Linux-x86_64-550.54.15.run`
 
-./NVIDIA-Linux-x86_64-550.54.15.run  --dkms
+`./NVIDIA-Linux-x86_64-550.54.15.run  --dkms`
 
 let it make changes and disable nodemon, install will fail, abort install, reboot
 
 rerun installer
-./NVIDIA-Linux-x86_64-550.54.15.run  --dkms
+`./NVIDIA-Linux-x86_64-550.54.15.run  --dkms`
 
 reboot
 
-nvidia-smi
+`nvidia-smi`
 
 
 # Ollama
