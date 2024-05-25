@@ -44,6 +44,8 @@ No need for alarm; This already happens when you run systemctl edit ollama.servi
 `sudo apt install pkg-config libglvnd-dev`
 
 ```
+lxc.idmap: u 0 100000 65536
+lxc.idmap: g 0 100000 65536
 lxc.cgroup2.devices.allow: c 195:* rwm
 lxc.cgroup2.devices.allow: c 534:* rwm
 lxc.mount.entry: /dev/nvidia0 dev/nvidia0 none bind,optional,create=file
@@ -51,4 +53,6 @@ lxc.mount.entry: /dev/nvidia1 dev/nvidia1 none bind,optional,create=file
 lxc.mount.entry: /dev/nvidiactl dev/nvidiactl none bind,optional,create=file
 lxc.mount.entry: /dev/nvidia-uvm dev/nvidia-uvm none bind,optional,create=file
 lxc.mount.entry: /dev/nvidia-uvm-tools dev/nvidia-uvm-tools none bind,optional,c
+
+
 ```
