@@ -143,6 +143,13 @@ The custom PCB design for the ESP-12e simplifies the setup and ensures robust co
 
 5. **Fan:**
    - Connected to GPIO4 and GPIO5 of the ESP8266 through a 10kΩ resistor (R2).
+  
+- Unpopulated PCB
+  ![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/be2697ec-7783-4138-a5d5-7a081dbfc85c)
+- Populated and running PCB
+  ![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/5eddca86-8348-4988-8b88-bd75b608e6ec)
+
+
 
 This circuit is designed for temperature monitoring using the DS18B20 sensor, with the ESP8266 controlling a fan based on the temperature readings. The ESP8266 can also provide Wi-Fi connectivity to send data to a server or a cloud service for remote monitoring.
 
