@@ -107,7 +107,8 @@ The ESPHome YAML configuration includes several key components and functionaliti
 - **Above 65°C (GPU) / 60°C (Dallas)**: Fan runs at maximum speed of 100%.
 
 ### Home Assistant Integration
-![WhatsApp Image 2024-05-20 at 16 40 21_f818323e](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/b6c7dbb1-61bb-4a81-944d-0b9b623012a0)
+![image](https://github.com/karl0ss/Tesla_M60_GPU_Cooler/assets/2493260/da719471-2c7f-4dbe-8c32-85f4489919b7)
+
 
 In [Home Assistant](https://www.home-assistant.io/), the following functionalities are implemented:
 
