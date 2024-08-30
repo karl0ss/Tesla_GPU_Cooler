@@ -6,6 +6,8 @@ reboot
 `wget https://us.download.nvidia.com/tesla/550.54.15/NVIDIA-Linux-x86_64-550.54.15.run`
 or `wget https://download.nvidia.com/XFree86/Linux-x86_64/555.42.02/NVIDIA-Linux-x86_64-555.42.02.run`
 
+support for steam-headless only with `wget https://download.nvidia.com/XFree86/Linux-x86_64/535.183.01/NVIDIA-Linux-x86_64-535.183.01.run`
+
 `chmod +x NVIDIA-Linux-x86_64-550.54.15.run`
 
 `./NVIDIA-Linux-x86_64-550.54.15.run  --dkms`
