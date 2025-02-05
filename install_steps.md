@@ -8,14 +8,14 @@ or `wget https://download.nvidia.com/XFree86/Linux-x86_64/555.42.02/NVIDIA-Linux
 
 support for steam-headless only with `wget https://download.nvidia.com/XFree86/Linux-x86_64/535.183.01/NVIDIA-Linux-x86_64-535.183.01.run`
 
-`chmod +x NVIDIA-Linux-x86_64-550.54.15.run`
+`chmod +x NVIDIA-Linux-x86_64-535.183.01.run`
 
-`./NVIDIA-Linux-x86_64-550.54.15.run  --dkms`
+`./NVIDIA-Linux-x86_64-535.183.01.run  --dkms`
 
 let it make changes and disable nodemon, install will fail, abort install, reboot
 
 rerun installer
-`./NVIDIA-Linux-x86_64-550.54.15.run  --dkms`
+`./NVIDIA-Linux-x86_64-535.183.01.run  --dkms`
 
 reboot
 
