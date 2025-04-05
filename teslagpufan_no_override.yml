@@ -55,11 +55,31 @@ globals:
   - id: gpu_max_temp
     type: float
     initial_value: '0.0'
+  - id: manual_override
+    type: bool
+    initial_value: 'false'
 
 # Switches
 switch:
   - platform: restart
     name: "${friendly_name} Restart"  
+
+  - platform: template
+    name: "Manual Fan Override"
+    id: manual_override_switch
+    lambda: |-
+      return id(manual_override);
+    turn_on_action:
+      - globals.set:
+          id: manual_override
+          value: "true"
+      - logger.log: "Manual Fan Override enabled"
+    turn_off_action:
+      - globals.set:
+          id: manual_override
+          value: "false"
+      - logger.log: "Manual Fan Override disabled"
+    restore_mode: ALWAYS_OFF
 
 # Text Sensors
 text_sensor:
@@ -67,23 +87,28 @@ text_sensor:
     ip_address:
       name: ${friendly_name} IP Address
 
+  - platform: template
+    name: ${friendly_name} Uptime
+    id: uptime_human
+    icon: mdi:clock-start
+
   - platform: mqtt_subscribe
     name: "GPU 1 Temp"
     internal: true
     id: gpu_1_temp
-    topic: "sensors2mqtt/nvidia-smi/00000000_03_00_0"
+    topic: "sensors2mqtt/nvidia-smi/00000000_06_00_0"
 
   - platform: mqtt_subscribe
     name: "GPU 2 Temp"
     internal: true
     id: gpu_2_temp
-    topic: "sensors2mqtt/nvidia-smi/00000000_04_00_0"
+    topic: "sensors2mqtt/nvidia-smi/00000000_07_00_0"
 
 # Sensors
 sensor:
   - platform: wifi_signal
     name: WiFi Strength
-    update_interval: 30s
+    update_interval: 30s  # Low Interval for DEBUGGING
 
   - platform: template
     name: "GPU 1 Temperature"
@@ -121,7 +146,7 @@ sensor:
     count_mode:
       rising_edge: INCREMENT
       falling_edge: DISABLE
-    update_interval: 10s
+    update_interval: 10s  # Low Interval for DEBUGGING
 
 # Output Configuration for Fan Speed
 output:
@@ -129,8 +154,30 @@ output:
     id: fan_speed
     pin: GPIO02
     frequency: "25000 Hz"
-    min_power: 10%
+    min_power: 10%  # Set the minimum power to 20%
     max_power: 100%
+
+# Number Component for Fan Speed Override
+number:
+  - platform: template
+    name: "Fan Speed Override"
+    id: fan_speed_override
+    internal: false
+    max_value: 100.0
+    min_value: 0.0
+    step: 5
+    optimistic: true
+    mode: slider
+    on_value:
+      then:
+        - globals.set:
+            id: manual_override
+            value: "true"
+        - output.set_level:
+            id: fan_speed
+            level: !lambda "return x / 100.0;"
+        - lambda: |-
+            id(fan_speed_percent) = x;
 
 # Intervals
 interval:
@@ -138,6 +185,7 @@ interval:
     then:
       - lambda: |-
           if (id(gpu_1_temp).state.length() > 0) {
+            // Parse the JSON string
             std::string json_str = id(gpu_1_temp).state;
             DynamicJsonDocument doc(1024);
             DeserializationError error = deserializeJson(doc, json_str);
@@ -147,11 +195,15 @@ interval:
               return;
             }
 
+            // Extract values from the JSON object
             float temperature = doc["temperature.gpu"];
+
+            // Update the sensors
             id(gpu_1_temp_sensor).publish_state(temperature);
           }
       - lambda: |-
           if (id(gpu_2_temp).state.length() > 0) {
+            // Parse the JSON string
             std::string json_str = id(gpu_2_temp).state;
             DynamicJsonDocument doc(1024);
             DeserializationError error = deserializeJson(doc, json_str);
@@ -161,13 +213,17 @@ interval:
               return;
             }
 
+            // Extract values from the JSON object
             float temperature = doc["temperature.gpu"];
+
+            // Update the sensors
             id(gpu_2_temp_sensor).publish_state(temperature);
           }
 
   - interval: 1s
     then:
       - lambda: |-
+          // Update max temperature if not in manual override mode
           float max_temp = std::max(id(gpu_1_temp_sensor).state, id(gpu_2_temp_sensor).state);
           id(gpu_max_temp) = max_temp;
       - script.execute: adjust_fan_speed
@@ -178,16 +234,18 @@ script:
     mode: queued
     then:
       - lambda: |-
-          float temp = id(gpu_max_temp);
+          if (!id(manual_override)) {
+            float fanSpeedPercent;
+            float temp = id(gpu_max_temp);
 
-          float fanSpeedPercent;
-          if (temp < 50.0) {
-            fanSpeedPercent = 15.0;
-          } else if (temp >= 50.0 && temp < 70.0) {
-            fanSpeedPercent = ((temp - 50.0) / 20.0) * 80.0 + 20.0;
-          } else {
-            fanSpeedPercent = 100.0;
+            if (temp < 50.0) {
+              fanSpeedPercent = 15.0;  // Set fan to 15% below 50°C
+            } else if (temp >= 50.0 && temp < 70.0) {
+              fanSpeedPercent = ((temp - 50.0) / 20.0) * 80.0 + 20.0;  // Scale fan speed between 20% and 100%
+            } else {
+              fanSpeedPercent = 100.0;  // Set fan to 100% at or above 70°C
+            }
+
+            id(fan_speed).set_level(fanSpeedPercent / 100.0);
+            id(fan_speed_percent) = fanSpeedPercent;
           }
-
-          id(fan_speed).set_level(fanSpeedPercent / 100.0);
-          id(fan_speed_percent) = fanSpeedPercent;
