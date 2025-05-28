@@ -1,7 +1,7 @@
 `apt update && apt upgrade -y`
 reboot
 
-## https://us.download.nvidia.com/XFree86/Linux-x86_64/470.199.02/NVIDIA-Linux-x86_64-470.199.02.run
+other -  https://us.download.nvidia.com/XFree86/Linux-x86_64/470.199.02/NVIDIA-Linux-x86_64-470.199.02.run
 
 `apt install build-essential dkms pve-headers-$(uname -r)`
 
