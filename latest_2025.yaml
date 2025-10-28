@@ -1,0 +1,252 @@
+substitutions:
+  friendly_name: TeslaGPUFan
+
+esphome:
+  name: "teslagpufan"
+  friendly_name: ${friendly_name}
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+logger:
+  level: INFO
+
+web_server:
+  port: 80
+
+# OTA updates
+ota:
+  password: "17300c7bac4a847d2b255aca0f4620e3"
+
+# Captive Portal
+captive_portal:
+
+# WiFi Configuration
+wifi:
+  ssid: Hudgell-Wifi
+  password: !secret wifi_password
+  reboot_timeout: 1min
+  manual_ip:
+    static_ip: 192.168.4.105
+    gateway: 192.168.4.1
+    subnet: 255.255.255.0
+
+  ap:
+    ssid: "Teslagpufan-Esp12E"
+    password: "S0tDmOp8vq0n"
+
+# MQTT Configuration
+mqtt:
+  broker: 192.168.4.196
+  username: mosquitto
+  password: !secret mqtt_pass
+  on_disconnect:
+    then:
+      - lambda: |-
+          id(fan_speed_percent) = 100.0;
+          id(fan_speed).set_level(1.0);  // Set fan to 100%
+
+# Global variables
+globals:
+  - id: fan_speed_percent
+    type: float
+    initial_value: '0.0'
+  - id: gpu_max_temp
+    type: float
+    initial_value: '0.0'
+  - id: manual_override
+    type: bool
+    initial_value: 'false'
+
+# Switches
+switch:
+  - platform: restart
+    name: "${friendly_name} Restart"  
+
+  - platform: template
+    name: "Manual Fan Override"
+    id: manual_override_switch
+    lambda: |-
+      return id(manual_override);
+    turn_on_action:
+      - globals.set:
+          id: manual_override
+          value: "true"
+      - logger.log: "Manual Fan Override enabled"
+    turn_off_action:
+      - globals.set:
+          id: manual_override
+          value: "false"
+      - logger.log: "Manual Fan Override disabled"
+    restore_mode: ALWAYS_OFF
+
+# Text Sensors
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: ${friendly_name} IP Address
+
+  - platform: template
+    name: ${friendly_name} Uptime
+    id: uptime_human
+    icon: mdi:clock-start
+
+  - platform: mqtt_subscribe
+    name: "GPU 1 Temp"
+    internal: true
+    id: gpu_1_temp
+    topic: "sensors2mqtt/nvidia-smi/00000000_06_00_0"
+
+  - platform: mqtt_subscribe
+    name: "GPU 2 Temp"
+    internal: true
+    id: gpu_2_temp
+    topic: "sensors2mqtt/nvidia-smi/00000000_07_00_0"
+
+# Sensors
+sensor:
+  - platform: wifi_signal
+    name: WiFi Strength
+    update_interval: 30s  # Low Interval for DEBUGGING
+
+  - platform: template
+    name: "GPU 1 Temperature"
+    id: gpu_1_temp_sensor
+    unit_of_measurement: "°C"
+    update_interval: never
+
+  - platform: template
+    name: "GPU 2 Temperature"
+    id: gpu_2_temp_sensor
+    unit_of_measurement: "°C"
+    update_interval: never
+
+  - platform: template
+    name: "Current Fan Speed"
+    lambda: 'return round(id(fan_speed_percent));'
+    unit_of_measurement: '%'
+    update_interval: 5s
+
+  - platform: template
+    name: "GPU Maximum Temperature"
+    id: gpu_max_temp_sensor
+    unit_of_measurement: "°C"
+    lambda: |-
+      return id(gpu_max_temp);
+    update_interval: 5s
+
+  - platform: pulse_counter
+    pin: GPIO0
+    name: RPM Signal
+    id: fan_RPM_pulse
+    unit_of_measurement: 'RPM'
+    filters:
+      - multiply: 0.5
+    count_mode:
+      rising_edge: INCREMENT
+      falling_edge: DISABLE
+    update_interval: 10s  # Low Interval for DEBUGGING
+
+# Output Configuration for Fan Speed
+output:
+  - platform: esp8266_pwm
+    id: fan_speed
+    pin: GPIO02
+    frequency: "25000 Hz"
+    min_power: 5%  # Set the minimum power to 5%
+    max_power: 100%
+
+# Number Component for Fan Speed Override
+number:
+  - platform: template
+    name: "Fan Speed Override"
+    id: fan_speed_override
+    internal: false
+    max_value: 100.0
+    min_value: 0.0
+    step: 5
+    optimistic: true
+    mode: slider
+    on_value:
+      then:
+        - globals.set:
+            id: manual_override
+            value: "true"
+        - output.set_level:
+            id: fan_speed
+            level: !lambda "return x / 100.0;"
+        - lambda: |-
+            id(fan_speed_percent) = x;
+
+# Intervals
+interval:
+  - interval: 5s
+    then:
+      - lambda: |-
+          if (id(gpu_1_temp).state.length() > 0) {
+            // Parse the JSON string
+            std::string json_str = id(gpu_1_temp).state;
+            DynamicJsonDocument doc(1024);
+            DeserializationError error = deserializeJson(doc, json_str);
+
+            if (error) {
+              ESP_LOGD("main", "Failed to parse JSON string");
+              return;
+            }
+
+            // Extract values from the JSON object
+            float temperature = doc["temperature.gpu"];
+
+            // Update the sensors
+            id(gpu_1_temp_sensor).publish_state(temperature);
+          }
+      - lambda: |-
+          if (id(gpu_2_temp).state.length() > 0) {
+            // Parse the JSON string
+            std::string json_str = id(gpu_2_temp).state;
+            DynamicJsonDocument doc(1024);
+            DeserializationError error = deserializeJson(doc, json_str);
+
+            if (error) {
+              ESP_LOGD("main", "Failed to parse JSON string");
+              return;
+            }
+
+            // Extract values from the JSON object
+            float temperature = doc["temperature.gpu"];
+
+            // Update the sensors
+            id(gpu_2_temp_sensor).publish_state(temperature);
+          }
+
+  - interval: 1s
+    then:
+      - lambda: |-
+          // Update max temperature if not in manual override mode
+          float max_temp = std::max(id(gpu_1_temp_sensor).state, id(gpu_2_temp_sensor).state);
+          id(gpu_max_temp) = max_temp;
+      - script.execute: adjust_fan_speed
+
+# Script to Adjust Fan Speed
+script:
+  - id: adjust_fan_speed
+    mode: queued
+    then:
+      - lambda: |-
+          if (!id(manual_override)) {
+            float fanSpeedPercent;
+            float temp = id(gpu_max_temp);
+
+            if (temp < 60.0) {
+              fanSpeedPercent = 5.0;  // Set fan to 5% below 60°C
+            } else if (temp >= 60.0 && temp < 80.0) {
+              // Scale fan speed from 5% at 60°C to 100% at 80°C
+              fanSpeedPercent = ((temp - 60.0) / 20.0) * 95.0 + 5.0;
+            } else {
+              fanSpeedPercent = 100.0;  // Set fan to 100% at or above 80°C
+            }
+
+            id(fan_speed).set_level(fanSpeedPercent / 100.0);
+            id(fan_speed_percent) = fanSpeedPercent;
+          }
