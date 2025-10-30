@@ -175,6 +175,7 @@ number:
     min_value: 0.0
     step: 5
     mode: slider
+    optimistic: True
     on_value:
       then:
         - globals.set:
