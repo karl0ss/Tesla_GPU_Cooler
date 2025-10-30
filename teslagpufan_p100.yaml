@@ -1,13 +1,13 @@
 substitutions:
-  friendly_name: TeslaP100Fan
-  gpu_topic: sensors2mqtt/nvidia-smi/00000000_05_00_0
+  friendly_name: TeslaGPUFan
+  gpu_topic: sensors2mqtt/nvidia-smi/00000000_04_00_0
   temp_low: "55.0"      # Fan starts ramping here
   temp_high: "78.0"     # Fan reaches 100% here
   fan_min: "10.0"       # Minimum fan %
   fan_max: "100.0"      # Maximum fan %
 
 esphome:
-  name: "teslap100fan"
+  name: "teslagpufan"
   friendly_name: ${friendly_name}
 
   on_boot:
@@ -19,7 +19,6 @@ esphome:
       - globals.set:
           id: fan_speed_percent
           value: "100.0"
-      - logger.log: "Safe-boot: fan set to 100% until GPU data received."
 
 esp8266:
   board: esp01_1m
@@ -199,4 +198,55 @@ interval:
             DeserializationError error = deserializeJson(doc, json_str);
             if (error || !doc.containsKey("temperature.gpu")) {
               id(json_error_count)++;
-              ESP_L_
+              ESP_LOGW("main", "Failed to parse GPU JSON (%d errors)", id(json_error_count));
+              id(gpu_temp_sensor).publish_state(NAN);
+              return;
+            }
+            float temperature = doc["temperature.gpu"];
+            id(gpu_temp_sensor).publish_state(temperature);
+            id(gpu_temp) = temperature;
+            id(last_update) = millis();
+          }
+
+  - interval: 1s
+    then:
+      - lambda: |-
+          // Failsafe: if no data in 15s, force fan to 100%
+          if ((millis() - id(last_update)) > 15000 && !id(manual_override)) {
+            ESP_LOGW("main", "No GPU data in 15s — forcing fan to 100%%");
+            id(fan_speed).set_level(1.0);
+            id(fan_speed_percent) = 100.0;
+          } else {
+            id(adjust_fan_speed).execute();
+          }
+
+# ───────────────────────────────────────────────────────────────
+# Script to Adjust Fan Speed
+script:
+  - id: adjust_fan_speed
+    mode: queued
+    then:
+      - lambda: |-
+          if (!id(manual_override)) {
+            float temp = id(gpu_temp);
+            float fanSpeedPercent;
+
+            if (isnan(temp)) return; // skip invalid temp
+
+            if (temp < ${temp_low}) {
+              fanSpeedPercent = ${fan_min};
+            } else if (temp >= ${temp_low} && temp < ${temp_high}) {
+              fanSpeedPercent = ((temp - ${temp_low}) / (${temp_high} - ${temp_low})) *
+                                (${fan_max} - ${fan_min}) + ${fan_min};
+            } else {
+              fanSpeedPercent = ${fan_max};
+            }
+
+            // Deadband to prevent rapid fan changes
+            float delta = fabs(id(fan_speed_percent) - fanSpeedPercent);
+            if (delta > 3.0) {
+              id(fan_speed).set_level(fanSpeedPercent / 100.0);
+              id(fan_speed_percent) = fanSpeedPercent;
+              ESP_LOGI("fan", "Temp: %.1f°C → Fan: %.1f%%", temp, fanSpeedPercent);
+            }
+          }
