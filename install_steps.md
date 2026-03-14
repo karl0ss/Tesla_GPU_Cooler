@@ -3,6 +3,8 @@ reboot
 
 other -  https://us.download.nvidia.com/XFree86/Linux-x86_64/470.199.02/NVIDIA-Linux-x86_64-470.199.02.run
 
+https://uk.download.nvidia.com/tesla/590.48.01/NVIDIA-Linux-x86_64-590.48.01.run
+
 `apt install build-essential dkms pve-headers-$(uname -r)`
 
 `wget https://us.download.nvidia.com/tesla/550.54.15/NVIDIA-Linux-x86_64-550.54.15.run`
