@@ -1,30 +1,29 @@
+# On Host
 `apt update && apt upgrade -y`
 reboot
 
-other -  https://us.download.nvidia.com/XFree86/Linux-x86_64/470.199.02/NVIDIA-Linux-x86_64-470.199.02.run
-
-https://uk.download.nvidia.com/tesla/590.48.01/NVIDIA-Linux-x86_64-590.48.01.run
-
 `apt install build-essential dkms pve-headers-$(uname -r)`
 
-`wget https://us.download.nvidia.com/tesla/550.54.15/NVIDIA-Linux-x86_64-550.54.15.run`
-or `wget https://download.nvidia.com/XFree86/Linux-x86_64/555.42.02/NVIDIA-Linux-x86_64-555.42.02.run`
+`wget https://us.download.nvidia.com/XFree86/Linux-x86_64/580.142/NVIDIA-Linux-x86_64-580.142.run`
 
 support for steam-headless only with `wget https://download.nvidia.com/XFree86/Linux-x86_64/535.183.01/NVIDIA-Linux-x86_64-535.183.01.run`
 
-`chmod +x NVIDIA-Linux-x86_64-535.183.01.run`
+`chmod +x NVIDIA-Linux-x86_64-580.142.run`
 
-`./NVIDIA-Linux-x86_64-535.183.01.run  --dkms`
+`./NVIDIA-Linux-x86_64-580.142.run  --dkms`
 
 let it make changes and disable nodemon, install will fail, abort install, reboot
 
 rerun installer
-`./NVIDIA-Linux-x86_64-535.183.01.run  --dkms`
+`./NVIDIA-Linux-x86_64-580.142.run  --dkms`
 
 reboot
 
 `nvidia-smi`
 
+# LXC
+
+`sudo ./NVIDIA-Linux-x86_64-580.142.run --no-kernel-module`
 
 # Ollama
 
